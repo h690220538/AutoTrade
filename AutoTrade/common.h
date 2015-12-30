@@ -33,7 +33,7 @@ struct Step {
 	int op;
 	union {
 		int keyValue;
-		int typeValue; //when op = INPUT
+		int inputValue; //when op = INPUT
 		ScreenPos clickPosValue;
 		int sleepValue;
 	} value;

@@ -4,14 +4,36 @@
 
 using namespace std;
 
+string curName;
+int findName;
+
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lparam) {
+	if (!IsWindowVisible(hwnd))
+		return 1;
+	char str[100];
+	GetWindowText(hwnd, str, sizeof(str));
+	string s(str);
+	int rc = s.find(curName.c_str());
+	if (rc != string::npos) {
+		cout << s << endl;
+		findName = 0;
+		ShowWindow(hwnd, SW_MAXIMIZE);
+		SetForegroundWindow(hwnd);
+		return 0;
+	}
+
+	return 1;
+}
+
 AutoTrade::AutoTrade(void) {
 	initVkmap();
 	configName = "config.ini";
 	initConfig();
+	
+	runStep("IH1601", 0, 0, 1);
 
 	printStep();
-	mouseMove(1800, 500);
-	mouseClick(0, 2);
+	//testWindow();
 }
 
 
@@ -19,10 +41,39 @@ AutoTrade::~AutoTrade(void) {
 
 }
 
-void AutoTrade::runStep(int proc) {
-	vector<Step> st = stepv[proc];
-	for (unsigned int i = 0; i < st.size(); i ++) {
+void AutoTrade::runStep(const char *code, int type, float price, int vol) {
+	vector<Step> st = stepv[type];
+	unsigned int i = 0, rc;
+	cout << st.size() << endl;
+	while (i < st.size()) {
+		curName = st[i].windowName;
+		if ((rc = selectWindow(st[i].windowName)) == 1) {
+			//无法置为顶端窗口
+			cout << "select window failed\n";
+			i ++;
+			continue;
+		}
+		if (st[i].op == KEY) 
+			keyPress(st[i].value.keyValue);
+		else if (st[i].op == INPUTEDIT) {
+			if (st[i].value.inputValue == ZQBH) keyPressString(code);
+			else if (st[i].value.inputValue == JG) {
+				char str[50];
+				sprintf_s(str, "%.0f\0", price);
+				keyPressString(str);
+			} else if (st[i].value.inputValue == SL) {
+				char str[50];
+				sprintf_s(str, "%d\0", vol);
+				keyPressString(str);
+			}
+		} else if (st[i].op == CLICK) {
+			mouseMove(st[i].value.clickPosValue.x, st[i].value.clickPosValue.y);
+			mouseClick(0, 1);
+		} else if (st[i].op == SLEEP)
+			Sleep(st[i].value.sleepValue);
 
+		i ++;
+		Sleep(300);
 	}
 }
 
@@ -32,7 +83,7 @@ void AutoTrade::printStep() {
 		for (unsigned int j = 0; j < stepv[i].size(); j ++) {
 			cout << stepv[i][j].windowName << ' ' << stepv[i][j].op << ' ';
 			if (stepv[i][j].op == KEY) cout << stepv[i][j].value.keyValue << endl;
-			else if (stepv[i][j].op == INPUTEDIT) cout << stepv[i][j].value.typeValue << endl;
+			else if (stepv[i][j].op == INPUTEDIT) cout << stepv[i][j].value.inputValue << endl;
 			else if (stepv[i][j].op == SLEEP) cout << stepv[i][j].value.sleepValue << endl;
 			else if (stepv[i][j].op == CLICK) cout << stepv[i][j].value.clickPosValue.x << ' ' 
 												<< stepv[i][j].value.clickPosValue.y << endl;
@@ -105,10 +156,10 @@ void AutoTrade::initConfig() {
 			tstep.op = INPUTEDIT;
 			string s1;
 			ss >> s1;
-			if (s1 == "ZQBH") tstep.value.typeValue = ZQBH;
-			else if (s1 == "JG") tstep.value.typeValue = JG;
-			else if (s1 == "SL") tstep.value.typeValue = SL;
-			else tstep.value.typeValue = NONE;
+			if (s1 == "ZQBH") tstep.value.inputValue = ZQBH;
+			else if (s1 == "JG") tstep.value.inputValue = JG;
+			else if (s1 == "SL") tstep.value.inputValue = SL;
+			else tstep.value.inputValue = NONE;
 		}
 		else if (s == "click") {
 			tstep.op = CLICK;
@@ -120,11 +171,26 @@ void AutoTrade::initConfig() {
 		}
 		stepv[index].push_back(tstep);
 	}
-
 }
 
+int AutoTrade::selectWindow(string windowName) {
+	HWND hwnd = FindWindow(NULL, windowName.c_str());
+	if (hwnd != NULL) {
+		cout << "1\n";
+		ShowWindow(hwnd, SW_NORMAL);
+		SetForegroundWindow(hwnd);
+	} else {
+		cout << "2\n";
+		findName = 1;
+		EnumWindows(EnumWindowsProc, NULL);
+		return findName;
+	}
+	return 0;
+}
+
+
 void AutoTrade::mouseMove(int x, int y) {
-	double w = GetSystemMetrics(SM_CXSCREEN), h = GetSystemMetrics(SM_CXSCREEN);
+	double w = GetSystemMetrics(SM_CXSCREEN), h = GetSystemMetrics(SM_CYSCREEN);
 	double fx = x*(65536.0/w), fy = y*(65536.0/h);
 	INPUT input = {0};
 	input.type = INPUT_MOUSE;
@@ -176,6 +242,11 @@ void AutoTrade::keyPressString(const char *str) {
 			keyPress(*c);
 		c ++;
 	}	
+}
+
+void AutoTrade::testWindow() {
+	HWND hwnd = FindWindow(NULL, "AutoTrade");
+	ShowWindow(hwnd, SW_MAXIMIZE);
 }
 
 
