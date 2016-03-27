@@ -11,6 +11,7 @@ public:
 	void buy();
 	void sell();
 	void runStep(const char *code, int type, float price, int vol);
+	void parse(std::string RecvBuffer);
 	void printStep();
 
 

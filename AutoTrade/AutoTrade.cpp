@@ -30,7 +30,7 @@ AutoTrade::AutoTrade(void) {
 	configName = "config.ini";
 	initConfig();
 	
-	runStep("IH1601", 0, 0, 1);
+//	runStep("a1605", 0, 0, 1);
 
 	printStep();
 	//testWindow();
@@ -68,14 +68,29 @@ void AutoTrade::runStep(const char *code, int type, float price, int vol) {
 			}
 		} else if (st[i].op == CLICK) {
 			mouseMove(st[i].value.clickPosValue.x, st[i].value.clickPosValue.y);
-			mouseClick(0, 1);
+			mouseClick(0, 2);
 		} else if (st[i].op == SLEEP)
 			Sleep(st[i].value.sleepValue);
 
 		i ++;
-		Sleep(300);
+		Sleep(500);
 	}
+
 }
+
+void AutoTrade::parse(string RecvBuffer) {
+	stringstream ss;
+	ss.clear();
+	ss.str(RecvBuffer);
+	string code;
+	int type;
+	float price;
+	int vol;
+	ss >> code >> type >> price >> vol;
+	cout << code.c_str() << type << price << vol << endl;
+	//runStep(code.c_str(), type, price, vol);
+}
+
 
 void AutoTrade::printStep() {
 	for (unsigned int i = 0; i < STEPCOUNT; i ++) {
@@ -223,6 +238,7 @@ void AutoTrade::mouseClick(int button, int times) {
 }
 
 void AutoTrade::keyPress(int vk) {
+	cout << vk << endl;
 	keybd_event(vk,0,0,0);
 	Sleep(100);
 	keybd_event(vk,0,KEYEVENTF_KEYUP,0);
@@ -237,7 +253,7 @@ void AutoTrade::keyPressString(const char *str) {
 		else if (*c >= 'A' && *c <= 'Z')
 			keyPress(*c);
 		else if (*c >= 'a' && *c <= 'z')
-			keyPress(*c);
+			keyPress(*c - 32);
 		else if (*c >= '0' && *c <= '9')
 			keyPress(*c);
 		c ++;
